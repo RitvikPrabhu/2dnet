@@ -12,7 +12,7 @@
 
 ### change 5-digit MASTER_PORT as you wish, slurm will raise Error if duplicated with others
 ### change WORLD_SIZE as gpus/node * num_nodes
-export MASTER_PORT=$port
+export MASTER_PORT=8888
 echo "master port: $MASTER_PORT"
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -66,12 +66,14 @@ chmod u+x ddnet_inference.py
 if [ "$enable_gr" = "true" ]; then
   export conda_env="pytorch_night"
 else
-  export conda_env="py_13_1_cuda11_7"
+  export conda_env="ddnet_test"
 fi
 #module reset
 #module load site/tinkercliffs/easybuild/arc.arcadm
-#module load Anaconda3/2022.05
-module restore cu117
+module load site/tinkercliffs/easybuild/setup
+module load apps
+module load Anaconda3/2020.11
+# module restore cu117
 export infer_command="conda run -n ${conda_env} python ddnet_inference.py --filepath ${SLURM_JOBID} --batch ${batch_size} --epochs ${epochs} --out_dir ${SLURM_JOBID} --model ${model} --retrain ${retrain}"
 
 if [ "$new_load" = "true" ]; then
@@ -85,29 +87,31 @@ export CMD="python ${file} --batch ${batch_size} --epochs ${epochs} --retrain ${
 echo "CMD: ${CMD}"
 
 
-if [ "$enable_gr" = "true" ]; then
-  export imagefile="/projects/synergy_lab/ayush/containers/pytorch_2.0.sif"
-else
-  export imagefile="/projects/synergy_lab/ayush/containers/pytorch_22.04.sif"
-fi
+# if [ "$enable_gr" = "true" ]; then
+#   export imagefile="/projects/synergy_lab/ayush/containers/pytorch_2.0.sif"
+# else
+#   export imagefile="/projects/synergy_lab/ayush/containers/pytorch_22.04.sif"
+# fi
 
-module list
-module load containers/apptainer
-export BASE="apptainer  exec --nv --writable-tmpfs --bind=/projects/synergy_lab,/cm/shared,${TMPFS} ${imagefile} "
+# module list
+# module load containers/apptainer
+# export BASE="apptainer  exec --nv --writable-tmpfs --bind=/projects/synergy_lab,/cm/shared,${TMPFS} ${imagefile} "
 
-
+conda init
+source /home/ritvikp/.bashrc
+conda activate ddnet_test
 if [  "$inferonly"  == "true" ]; then
   export filepath=$1
   python ddnet_inference.py --filepath ${filepath} --batch ${batch_size} --epochs ${epochs} --out_dir ${filepath}
 elif [ "$enable_profile" = "true" ];then
 #  module load CUDA/11.7.0
   echo "cuda home: ${CUDA_HOME}"
-  srun --wait=120 --kill-on-bad-exit=0 --cpu-bind=none $BASE dlprof --output_path=${SLURM_JOBID} --nsys_base_name=nsys_${SLURM_PROCID} --profile_name=dlpro_${SLURM_PROCID} --mode=pytorch --nsys_opts="-t osrt,cuda,nvtx,cudnn,cublas,cusparse,mpi, --cuda-memory-usage=true" -f true --reports=all --delay 60 --duration 120 ${CMD}
+  srun --wait=120 --kill-on-bad-exit=0 --cpu-bind=none dlprof --output_path=${SLURM_JOBID} --nsys_base_name=nsys_${SLURM_PROCID} --profile_name=dlpro_${SLURM_PROCID} --mode=pytorch --nsys_opts="-t osrt,cuda,nvtx,cudnn,cublas,cusparse,mpi, --cuda-memory-usage=true" -f true --reports=all --delay 60 --duration 120 ${CMD}
 else
   for _experiment_index in $(seq 1 "${NEXP}"); do
     (
   	echo "Beginning trial ${_experiment_index} of ${NEXP}"
-  	srun  --unbuffered --wait=120 --kill-on-bad-exit=0 --cpu-bind=none $BASE $CMD
+  	srun  --unbuffered --wait=120 --kill-on-bad-exit=0 --cpu-bind=none $CMD
     )
   done
   wait

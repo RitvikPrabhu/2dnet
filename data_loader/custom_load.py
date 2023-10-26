@@ -53,7 +53,7 @@ class CTDataset(object):
     def __init__(self, root_dir_h, root_dir_l, length, device="cpu", batch_size=1, seed=333, dtype=torch.FloatTensor):
         rmax = 1
         rmin = 0
-
+        print("THE LENGTH IS: " + str(length/2))
         self.batch_size = batch_size
         self.device = device
         self.dtype = dtype
@@ -64,9 +64,11 @@ class CTDataset(object):
         self.img_list_h = os.listdir(self.data_root_h)
         self.img_list_l.sort()
         self.img_list_h.sort()
-        self.img_list_l = self.img_list_l[0:length]
-        self.img_list_h = self.img_list_h[0:length]
+        self.img_list_l = self.img_list_l[0:int(length/2)]
+        self.img_list_h = self.img_list_h[0:int(length/2)]
         #         self.transform = transform
+
+        print("Images loaded for original model: " + str(len(self.img_list_l)) + " out of " + str(length))
 
         self.tensor_list_hq = []
         self.tensor_list_lq = []

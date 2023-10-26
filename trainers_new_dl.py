@@ -695,7 +695,6 @@ def _epoch_profile(model, train_index_list, val_index_list, train_loader, val_lo
         return train_total_loss, train_MSE_loss, train_MSSSIM_loss, val_total_loss, val_MSE_loss, val_MSSSIM_loss
 
 def main():
-
     parser = prs.get_parser()
     args = parser.parse_args()
 

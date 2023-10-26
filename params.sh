@@ -26,7 +26,7 @@ export model="ddnet"
 
 export num_data_w=4
 #enables data stagin 
-export new_load="false"
+export new_load="true"
 export wandb=-1
 export lr=0.001
 export dr=0.95
